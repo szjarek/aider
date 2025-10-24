@@ -973,7 +973,7 @@ class Model(ModelSettings):
             kwargs["tool_choice"] = {"type": "function", "function": {"name": function["name"]}}
         if self.extra_params:
             kwargs.update(self.extra_params)
-        if self.is_ollama() and "num_ctx" not in kwargs:
+        if self.is_ollama() and "num_ctx" not in kwargs: # NOTE: Changing num_ctx forces Ollama to reload the model (which may be slow for large models)
             num_ctx = int(self.token_count(messages) * 1.25) + 8192
             kwargs["num_ctx"] = num_ctx
         key = json.dumps(kwargs, sort_keys=True).encode()
