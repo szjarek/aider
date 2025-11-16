@@ -46,7 +46,7 @@ from aider.reasoning_tags import (
 from aider.repo import ANY_GIT_ERROR, GitRepo
 from aider.repomap import RepoMap
 from aider.run_cmd import run_cmd
-from aider.utils import format_content, format_messages, format_tokens, is_image_file
+from aider.utils import format_content, format_functions, format_messages, format_tokens, is_image_file
 from aider.waiting import WaitingSpinner
 
 from ..dump import dump  # noqa: F401
@@ -1791,6 +1791,10 @@ class Coder:
         self.partial_response_function_call = dict()
 
         self.io.log_llm_history("TO LLM", format_messages(messages))
+        
+        # Log function/tool definitions if provided
+        if functions:
+            self.io.log_llm_history("FUNCTIONS/TOOLS", format_functions(functions))
 
         completion = None
         try:
@@ -1820,18 +1824,25 @@ class Coder:
             self.keyboard_interrupt()
             raise kbi
         finally:
-            self.io.log_llm_history(
-                "LLM RESPONSE",
-                format_content("ASSISTANT", self.partial_response_content),
-            )
+            # Log the response content
+            response_content = format_content("ASSISTANT", self.partial_response_content)
+            
+            # Also log function calls if present
+            parsed_args = None
+            if self.partial_response_function_call:
+                parsed_args = self.parse_partial_args()
+                if parsed_args:
+                    function_call_info = f"Function Call: {json.dumps(self.partial_response_function_call, indent=2)}\n"
+                    function_call_info += f"Parsed Arguments: {json.dumps(parsed_args, indent=2)}"
+                    response_content += "\n\n" + function_call_info
+            
+            self.io.log_llm_history("LLM RESPONSE", response_content)
 
             if self.partial_response_content:
                 self.io.ai_output(self.partial_response_content)
-            elif self.partial_response_function_call:
+            elif self.partial_response_function_call and parsed_args:
                 # TODO: push this into subclasses
-                args = self.parse_partial_args()
-                if args:
-                    self.io.ai_output(json.dumps(args, indent=4))
+                self.io.ai_output(json.dumps(parsed_args, indent=4))
 
     def show_send_output(self, completion):
         # Stop spinner once we have a response

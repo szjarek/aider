@@ -134,6 +134,26 @@ def format_messages(messages, title=None):
     return "\n".join(output)
 
 
+def format_functions(functions):
+    """Format function definitions for logging."""
+    if not functions:
+        return "No functions/tools defined"
+    
+    import json
+    output = []
+    output.append("FUNCTIONS/TOOLS DEFINITIONS")
+    output.append("=" * 50)
+    
+    for i, func in enumerate(functions, 1):
+        output.append(f"\nFunction {i}:")
+        output.append("-" * 30)
+        # Format the function definition as JSON for readability
+        formatted_func = json.dumps(func, indent=2, ensure_ascii=False)
+        output.append(formatted_func)
+    
+    return "\n".join(output)
+
+
 def show_messages(messages, title=None, functions=None):
     formatted_output = format_messages(messages, title)
     print(formatted_output)
